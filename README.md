@@ -156,4 +156,7 @@ Run the tests with `dotnet test`.
 ## Next steps
 
 - Require the approver to be a different person from the requester, and add an approver role (WorkOS RBAC)
+-  Store the canonical arguments (or a readable summary) next to the HMAC and show them on the approval page, so approvers see exactly what they're approving
+-  Make approval single use
+-  An audit trail view
 
