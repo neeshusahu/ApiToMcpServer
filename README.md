@@ -156,5 +156,4 @@ Run the tests with `dotnet test`.
 ## Next steps
 
 - Require the approver to be a different person from the requester, and add an approver role (WorkOS RBAC)
-- Show the operation details on the approval page
-- An audit trail view
+
