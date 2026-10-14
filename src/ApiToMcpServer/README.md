@@ -196,7 +196,6 @@ WorkOS issues the tokens for **both** halves of the system, but they are **diffe
 | Validated by | This server: issuer + **audience** + signature + lifetime | ApprovalApi: issuer (includes the client ID) + signature + lifetime |
 | Signing keys | Discovered from `Authority` (OIDC metadata) | `https://api.workos.com/sso/jwks/<clientId>` |
 | Refreshed by | The MCP client, through the OAuth token endpoint | The AuthKit SDK, using a refresh token |
-| Can it approve? | **No.** ApprovalApi rejects it because the issuer is wrong. | **Yes**, this is the only token ApprovalApi accepts |
 
 ### Why two tokens
 
