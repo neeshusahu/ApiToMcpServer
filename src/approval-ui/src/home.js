@@ -5,6 +5,15 @@ import { Button, Card, CardContent, Typography } from "@mui/material";
 function Home() {
   const { user, isLoading, signIn, signOut } = useAuth();
 
+  // After a forced sign-out lands here, sign in again and return to the approval that triggered it
+  React.useEffect(() => {
+    const pending = sessionStorage.getItem("pendingApproval");
+    if (!isLoading && !user && pending) {
+      sessionStorage.removeItem("pendingApproval");
+      signIn({ state: { returnTo: pending } });
+    }
+  }, [isLoading, user, signIn]);
+
   if (isLoading) {
     return <Typography sx={{ m: 4 }}>Loading...</Typography>;
   }

@@ -82,19 +82,37 @@ app.MapPost("/approval/{id}", async (Guid id, int approvalStatus, IRepository<Ap
 {
     try
     {
+        //updated Status neither approve or rejection
+        if (approvalStatus != (int)ApprovalStatus.Approved && approvalStatus != (int)ApprovalStatus.Rejected)
+            return Results.BadRequest("Invalid approval status.");
         if (user == null)
         {
             return Results.Unauthorized();
         }
         var workOsUserId = user.FindFirst("sub")?.Value;
-
+        // If valid WorkOS Id is not there
         if (string.IsNullOrEmpty(workOsUserId))
             return Results.Unauthorized();
 
+        // The approver must have signed in interactively within the last 5 minutes
+        if (!AuthFreshness.IsFresh(user, DateTimeOffset.UtcNow))
+            return Results.Json(new { error = "reauth_required" }, statusCode: StatusCodes.Status401Unauthorized);
+
+        var existing = await repository.GetByIdAsync(id);
+        //If the operation ID is not present i.e invalid
+        if (existing is null)
+            return Results.NotFound();
+            //Existing operation ID doesn't ahve pending status i.e not a vlid candidate for update
+        if (existing.Status != ApprovalStatus.Pending)
+            return Results.Conflict($"Not a valid candidate for update. Current status: {existing.Status}");
+ // If the existing approval time has already been expired
+        if (existing.ExpiresAt <= DateTime.UtcNow)
+            return Results.Problem("Approval has expired.", statusCode: StatusCodes.Status410Gone);
         var profile = await workOSClient.UserManagement
             .GetAsync(workOsUserId);
 
-
+        if (profile == null)
+            return Results.NotFound();
         var currentUser = new User
         {
             WorkOSId = profile.Id,
@@ -102,7 +120,11 @@ app.MapPost("/approval/{id}", async (Guid id, int approvalStatus, IRepository<Ap
             FirstName = profile?.FirstName,
             LastName = profile?.LastName
         };
+
         var updatedUser = await userRepository.GetOrCreateUserAsync(currentUser);
+//approver is not same as the one who cretaed the request 
+        if (updatedUser is null || existing.CreatedBy != updatedUser.Id)
+    return Results.Forbid(); 
         await repository.UpdateAsync(new Approval
         {
             Id = id,

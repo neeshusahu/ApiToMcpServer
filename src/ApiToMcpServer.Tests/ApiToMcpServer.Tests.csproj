@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ApiToMcpServer\ApiToMcpServer.csproj" />
     <ProjectReference Include="..\ApiToMcpServer.Persistence\ApiToMcpServer.Persistence.csproj" />
+    <ProjectReference Include="..\ApiToMcpServer.ApprovalApi\ApiToMcpServer.ApprovalApi.csproj" />
   </ItemGroup>
 
 </Project>

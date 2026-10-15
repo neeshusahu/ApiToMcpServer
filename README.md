@@ -13,6 +13,7 @@ Turn **any REST API** into tools for AI agents over **MCP**, where **risky actio
 - **Two AuthKit tokens.** The agent uses an **OAuth** token; the approver uses a **session** token. An agent can never approve its own action.
 - **MRTR approvals.** The server stays stateless: it pauses the tool call, sends an approval link, and resumes when the client calls again.
 - **Tamper-proof approvals.** An HMAC ties each approval to the exact arguments. Approvals expire after 10 minutes and can be decided only once.
+- **Fresh sign-in.** The approver must have signed in within the last 5 minutes (`auth_time`), checked in the UI and enforced by ApprovalApi.
 
 ## How it works
 
@@ -28,7 +29,7 @@ sequenceDiagram
     U->>C: "Delete user u_3"
     C->>M: tools/call deleteUser (OAuth token)
     M-->>C: MRTR: approval URL + requestState
-    U->>UI: Sign in (AuthKit session) → Approve / Reject
+    U->>UI: Fresh sign-in (AuthKit session, auth_time ≤ 5 min) → Approve / Reject
     C->>M: tools/call again with requestState
     M->>M: Check HMAC, expiry, status
     alt Approved
@@ -72,6 +73,15 @@ The MCP client finds AuthKit on its own. The server's `401` response points it t
 2. The user approves or rejects in the browser, then tells Claude to continue.
 3. Claude calls the tool again with that `requestState`. The server checks the HMAC, expiry and status, then runs the call or refuses it.
 
+## Fresh sign-in
+
+A valid token isn't proof the person is present. AuthKit refreshes tokens silently, so a sign-in from days ago keeps producing new tokens that pass `exp` checks. The approval uses **`auth_time`** instead: the time of the last *interactive* sign-in, which refreshes never change.
+
+- **approval-ui:** `RequireAuth` shows the approval page only if `auth_time` is under 5 minutes old. Otherwise it signs the user out and back in, so they enter their credentials, and then returns them to the same approval.
+- **ApprovalApi:** enforces the same rule with the server's clock. A stale or missing `auth_time` gets `401 { "error": "reauth_required" }`, and the page responds by signing the user out and in again.
+
+The browser check is for a smooth experience; the server check is the guarantee.
+
 ## Walkthrough
 
 **Approved:** the delete runs.
@@ -102,6 +112,7 @@ The MCP client finds AuthKit on its own. The server's `401` response points it t
 3. **For approval-ui:**
    - add the redirect URI `http://localhost:3000`
    - allow the CORS origin `http://localhost:3000`
+   - add `http://localhost:3000` as the **sign-out redirect**, used by the fresh sign-in
    - put the client ID in `src/approval-ui/.env`
 
 ## Getting started
@@ -155,7 +166,7 @@ Run the tests with `dotnet test`.
 
 ## Next steps
 
-- Require the approver to be a different person from the requester, and add an approver role (WorkOS RBAC)
+- Bind approvals to the requesting user: only the WorkOS user (`sub`) who made the request can approve it
 -  Store the canonical arguments (or a readable summary) next to the HMAC and show them on the approval page, so approvers see exactly what they're approving
 -  Make approval single use
 -  An audit trail view
