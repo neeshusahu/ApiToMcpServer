@@ -166,7 +166,7 @@ Run the tests with `dotnet test`.
 
 ## Next steps
 
-- Bind approvals to the requesting user: only the WorkOS user (`sub`) who made the request can approve it
+
 -  Store the canonical arguments (or a readable summary) next to the HMAC and show them on the approval page, so approvers see exactly what they're approving
 -  Make approval single use
 -  An audit trail view
